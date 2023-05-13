@@ -33,7 +33,7 @@ RingBuffer_t * RingBuffer_create(uint32_t bufferSize, uint32_t dataSize){
  */
 
 
-int32_t RingBuffer_write(RingBuffer_t * buffer, void* src, uint32_t length){
+int32_t RingBuffer_write(RingBuffer_t * buffer, void* src, int32_t length){
     if(buffer == NULL || src == NULL) return -1;
     
     //make sure there is enough space in the buffer
@@ -111,7 +111,50 @@ int32_t RingBuffer_read(RingBuffer_t * buffer, void* dst, uint32_t length){
     return length;
 }
 
-int32_t RingBuffer_readFromISR(RingBuffer_t * buffer, void* dst, uint32_t length){
+//have a look at the buffer at an indexed offset from readIndex
+int32_t RingBuffer_peek(RingBuffer_t * buffer, void* dst, uint32_t index, uint32_t length){
+    if(buffer == NULL || dst == NULL) return -1;
+    
+    //check if there is enough data to even get to the index
+    int32_t currDataCount = RingBuffer_getDataCount(buffer);
+    if(index+1 > currDataCount) return -1;
+    
+    //limit read length to available data
+    if(length > currDataCount - index) length = currDataCount - index;
+    
+    //make sure we don't get interrupted while touching the data
+    vTaskEnterCritical();
+    
+    //calculate new offset
+    uint32_t currIndex = buffer->readIndex + index;
+    if(currIndex >= buffer->dataCount){ 
+        currIndex -= buffer->dataCount;
+    }
+    uint32_t currItem = 0;
+    
+    while(currItem < length){
+        //Calculate the pointer from the current index. This is potentially a bit shady? Idk (TODO evaluate?). Because our datasize is dynamic we need to do an integer addition to the pointer
+        void* dstPtr = (void*) ((uint32_t) dst + currItem * buffer->dataSize);
+        void* srcPtr = (void*) ((uint32_t) buffer->mem + currIndex * buffer->dataSize);
+
+        //copy the data
+        memcpy(dstPtr, srcPtr, buffer->dataSize);
+        
+        //go to the next entry
+        currItem++;
+        currIndex++;
+        if(currIndex >= buffer->dataCount) currIndex = 0;
+    }
+    
+    //DON'T update any indices... after all we are only peeking at the data
+    
+    //and release the status again
+    vTaskExitCritical();
+    
+    return length;
+}
+
+int32_t RingBuffer_readFromISR(RingBuffer_t * buffer, void* dst, int32_t length){
     if(buffer == NULL || dst == NULL) return -1;
    
     //make sure there is enough data to read
@@ -161,14 +204,14 @@ uint32_t RingBuffer_sizeInBytes(RingBuffer_t * buffer){
     return buffer->memSize;
 }
 
-uint32_t RingBuffer_getDataCount(RingBuffer_t * buffer){
-    uint32_t dataCount = buffer->writeIndex - buffer->readIndex;
+int32_t RingBuffer_getDataCount(RingBuffer_t * buffer){
+    int32_t dataCount = buffer->writeIndex - buffer->readIndex;
     if(dataCount < 0) dataCount += buffer->dataCount;
     return dataCount;
 }
 
-uint32_t RingBuffer_getSpaceCount(RingBuffer_t * buffer){
-    uint32_t dataCount = buffer->readIndex - buffer->writeIndex - 1;
+int32_t RingBuffer_getSpaceCount(RingBuffer_t * buffer){
+    int32_t dataCount = buffer->readIndex - buffer->writeIndex - 1;
     if(dataCount < 0) dataCount += buffer->dataCount;
     return dataCount;
 }
