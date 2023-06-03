@@ -163,8 +163,6 @@ int32_t RingBuffer_readFromISR(RingBuffer_t * buffer, void* dst, int32_t length)
         //TODO also check if we might want to read only the available data here
         return -1;
     }
-    //make sure we don't get interrupted while touching the data (?° ?? ?°)
-    UBaseType_t uxSavedInterruptStatus = taskENTER_CRITICAL_FROM_ISR();
     
     uint32_t currIndex = buffer->readIndex;
     uint32_t currItem = 0;
@@ -185,9 +183,6 @@ int32_t RingBuffer_readFromISR(RingBuffer_t * buffer, void* dst, int32_t length)
     
     //and finally update the read index
     buffer->readIndex = currIndex;
-    
-    //and release the status again
-    taskEXIT_CRITICAL_FROM_ISR(uxSavedInterruptStatus);
     
     return length;
 }
