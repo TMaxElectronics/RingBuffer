@@ -30,14 +30,16 @@ RingBuffer_t * RingBuffer_create(uint32_t bufferSize, uint32_t dataSize){
  * in order for a read to be valid we need to make sure that the position read has been written completely before accessing it. The solution: increase the write pointer only after every buffer write operation is done.
  * 
  * same goes for writing. We must ensure that a write doesn't happen if the position we write to might still be read at the time of writing. So we must only to increase the read pointer after the read operation has finished
+ * 
+ * TODO this is certainly not valid for the shiftOnOverflow addition, verify and fix potential issues
  */
 
 
-int32_t RingBuffer_write(RingBuffer_t * buffer, void* src, int32_t length){
+int32_t RingBuffer_write(RingBuffer_t * buffer, void* src, int32_t length, uint32_t shiftOnOverflow){
     if(buffer == NULL || src == NULL) return -1;
     
     //make sure there is enough space in the buffer
-    if(RingBuffer_getSpaceCount(buffer) < length){
+    if(!shiftOnOverflow && RingBuffer_getSpaceCount(buffer) < length){
         //nope there isn't, return with an error
         //TODO maybe only write some data now?
         return -1;
@@ -61,6 +63,13 @@ int32_t RingBuffer_write(RingBuffer_t * buffer, void* src, int32_t length){
         currItem++;
         currIndex++;
         if(currIndex >= buffer->dataCount) currIndex = 0;
+        
+        //check if we overran the buffer, this should only happen with shiftOnOverflow enabled
+        if(shiftOnOverflow && currIndex == buffer->readIndex){
+            //yes, we did overrun. Since shiftOnOverflow is enabled we want to offset the read pointer to point to the now oldest valid element
+            buffer->readIndex++;
+            if(buffer->readIndex >= buffer->dataCount) buffer->readIndex = 0;
+        }
     }
     
     //and finally increase the write index
