@@ -6,6 +6,7 @@ typedef struct{
     uint32_t memSize;
     uint32_t dataSize;
     uint32_t dataCount;
+    uint32_t dataCountLimited;
     
     //buffer data
     void* mem;
@@ -26,5 +27,6 @@ uint32_t RingBuffer_size(RingBuffer_t * buffer);
 uint32_t RingBuffer_sizeInBytes(RingBuffer_t * buffer);
 int32_t RingBuffer_getDataCount(RingBuffer_t * buffer);
 int32_t RingBuffer_getSpaceCount(RingBuffer_t * buffer);
+void RingBuffer_setSizeLimit(RingBuffer_t * buffer, uint32_t size);
 
 #endif

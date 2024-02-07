@@ -18,11 +18,19 @@ RingBuffer_t * RingBuffer_create(uint32_t bufferSize, uint32_t dataSize){
     //data sizes
     ret->memSize = bufferSize * dataSize;
     ret->dataCount = bufferSize;
+    ret->dataCountLimited = bufferSize;
     ret->dataSize = dataSize;
     
     //pointers are cleared by the memclear operation after descriptor allocation
     
     return ret;
+}
+
+void RingBuffer_setSizeLimit(RingBuffer_t * buffer, uint32_t size){
+    RingBuffer_flush(buffer);
+    
+    if(size > buffer->dataCount) size = buffer->dataCount;
+    buffer->dataCountLimited = size;
 }
 
 /* thoughts regarding thread safe reading and writing:
@@ -62,13 +70,13 @@ int32_t RingBuffer_write(RingBuffer_t * buffer, void* src, int32_t length, uint3
         //go to the next entry
         currItem++;
         currIndex++;
-        if(currIndex >= buffer->dataCount) currIndex = 0;
+        if(currIndex >= buffer->dataCountLimited) currIndex = 0;
         
         //check if we overran the buffer, this should only happen with shiftOnOverflow enabled
         if(shiftOnOverflow && currIndex == buffer->readIndex){
             //yes, we did overrun. Since shiftOnOverflow is enabled we want to offset the read pointer to point to the now oldest valid element
             buffer->readIndex++;
-            if(buffer->readIndex >= buffer->dataCount) buffer->readIndex = 0;
+            if(buffer->readIndex >= buffer->dataCountLimited) buffer->readIndex = 0;
         }
     }
     
@@ -108,7 +116,7 @@ int32_t RingBuffer_read(RingBuffer_t * buffer, void* dst, uint32_t length){
         //go to the next entry
         currItem++;
         currIndex++;
-        if(currIndex >= buffer->dataCount) currIndex = 0;
+        if(currIndex >= buffer->dataCountLimited) currIndex = 0;
     }
     
     //and finally update the read index
@@ -136,8 +144,8 @@ int32_t RingBuffer_peek(RingBuffer_t * buffer, void* dst, uint32_t index, uint32
     
     //calculate new offset
     uint32_t currIndex = buffer->readIndex + index;
-    if(currIndex >= buffer->dataCount){ 
-        currIndex -= buffer->dataCount;
+    if(currIndex >= buffer->dataCountLimited){ 
+        currIndex -= buffer->dataCountLimited;
     }
     uint32_t currItem = 0;
     
@@ -152,7 +160,7 @@ int32_t RingBuffer_peek(RingBuffer_t * buffer, void* dst, uint32_t index, uint32
         //go to the next entry
         currItem++;
         currIndex++;
-        if(currIndex >= buffer->dataCount) currIndex = 0;
+        if(currIndex >= buffer->dataCountLimited) currIndex = 0;
     }
     
     //DON'T update any indices... after all we are only peeking at the data
@@ -187,7 +195,7 @@ int32_t RingBuffer_readFromISR(RingBuffer_t * buffer, void* dst, int32_t length)
         //go to the next entry
         currItem++;
         currIndex++;
-        if(currIndex >= buffer->dataCount) currIndex = 0;
+        if(currIndex >= buffer->dataCountLimited) currIndex = 0;
     }
     
     //and finally update the read index
@@ -197,11 +205,11 @@ int32_t RingBuffer_readFromISR(RingBuffer_t * buffer, void* dst, int32_t length)
 }
 
 void RingBuffer_flush(RingBuffer_t * buffer){
-    buffer->readIndex = buffer->writeIndex;
+    buffer->readIndex = buffer->writeIndex = 0;
 }
 
 uint32_t RingBuffer_size(RingBuffer_t * buffer){
-    return buffer->dataCount;
+    return buffer->dataCountLimited;
 }
 
 uint32_t RingBuffer_sizeInBytes(RingBuffer_t * buffer){
@@ -210,12 +218,12 @@ uint32_t RingBuffer_sizeInBytes(RingBuffer_t * buffer){
 
 int32_t RingBuffer_getDataCount(RingBuffer_t * buffer){
     int32_t dataCount = buffer->writeIndex - buffer->readIndex;
-    if(dataCount < 0) dataCount += buffer->dataCount;
+    if(dataCount < 0) dataCount += buffer->dataCountLimited;
     return dataCount;
 }
 
 int32_t RingBuffer_getSpaceCount(RingBuffer_t * buffer){
     int32_t dataCount = buffer->readIndex - buffer->writeIndex - 1;
-    if(dataCount < 0) dataCount += buffer->dataCount;
+    if(dataCount < 0) dataCount += buffer->dataCountLimited;
     return dataCount;
 }
