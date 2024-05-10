@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <string.h>
-#include "RingBuffer.h"
+#include "include/RingBuffer.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
@@ -133,12 +133,12 @@ int32_t RingBuffer_write(RingBuffer_t * buffer, void* src, int32_t length, uint3
     }
     
     //make sure we don't get interrupted while touching the data (?° ?? ?°) WHY github oh why do you ruin lenny face :(((((((
-    vTaskEnterCritical();
+    taskENTER_CRITICAL();
     
     int32_t ret = RingBuffer_writeToBuffer(buffer, src, length, shiftOnOverflow);
     
     //and release the status again
-    vTaskExitCritical();
+    taskEXIT_CRITICAL();
     
     return ret;
 }
@@ -154,7 +154,7 @@ int32_t RingBuffer_read(RingBuffer_t * buffer, void* dst, uint32_t length){
     }
     
     //make sure we don't get interrupted while touching the data (?° ?? ?°)
-    vTaskEnterCritical();
+    taskENTER_CRITICAL();
     
     uint32_t currIndex = buffer->readIndex;
     uint32_t currItem = 0;
@@ -177,7 +177,7 @@ int32_t RingBuffer_read(RingBuffer_t * buffer, void* dst, uint32_t length){
     buffer->readIndex = currIndex;
     
     //and release the status again
-    vTaskExitCritical();
+    taskEXIT_CRITICAL();
     
     return length;
 }

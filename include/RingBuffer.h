@@ -1,5 +1,7 @@
 #ifndef RB_INC
 #define RB_INC
+    
+#include <stdint.h>
 
 typedef struct{
     //buffer describing constants
