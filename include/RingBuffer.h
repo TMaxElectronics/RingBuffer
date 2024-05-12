@@ -15,6 +15,7 @@ typedef struct{
     
     //read & write pointers. These always indicate what will be either written or read next
     volatile int32_t readIndex;
+    volatile int32_t startIndex;
     volatile int32_t writeIndex;
 } volatile RingBuffer_t;
 
@@ -27,6 +28,9 @@ int32_t RingBuffer_peek(RingBuffer_t * buffer, void* dst, uint32_t index, uint32
 int32_t RingBuffer_write(RingBuffer_t * buffer, void* src, int32_t length, uint32_t shiftOnOverflow);
 int32_t RingBuffer_writeFromISR(RingBuffer_t * buffer, void* src, int32_t length, uint32_t shiftOnOverflow);
 int32_t RingBuffer_writeSingleWord(RingBuffer_t * buffer, void* src);
+
+void* RingBuffer_indexedPeek(RingBuffer_t * buffer, uint32_t index);
+void RingBuffer_startIndexedPeek(RingBuffer_t * buffer);
 
 void RingBuffer_flush(RingBuffer_t * buffer);
 uint32_t RingBuffer_size(RingBuffer_t * buffer);

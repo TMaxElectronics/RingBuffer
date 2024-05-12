@@ -291,6 +291,31 @@ int32_t RingBuffer_readFromISR(RingBuffer_t * buffer, void* dst, int32_t length)
     return length;
 }
 
+void RingBuffer_startIndexedPeek(RingBuffer_t * buffer){
+    //remember the read pointer we are at now so we can access the buffer by index from this point on
+    buffer->startIndex = buffer->readIndex;
+}
+
+void* RingBuffer_indexedPeek(RingBuffer_t * buffer, uint32_t index){
+    //user requests access to data at a specified index
+    
+    //buffer index to access
+    int32_t targetIndex = index + buffer->startIndex;
+    while(targetIndex >= buffer->dataCountLimited) targetIndex -= buffer->dataCountLimited; //access looped around to first buffer item
+    
+    //Check if the index is currently part of valid data
+    if(buffer->writeIndex > buffer->readIndex){
+        //write index hasn't yet looped around => check if we are inbetween the two values. If not return NULL as no valid data could be read
+        if(targetIndex < buffer->readIndex || targetIndex >= buffer->writeIndex) return NULL;
+    }else{
+        //write index has yet looped around => check opposite of the other case. If not return NULL as no valid data could be read
+        if(targetIndex >= buffer->writeIndex && !(targetIndex > buffer->readIndex)) return NULL;
+    }
+    
+    //data should be valid => return pointer to it
+    return (void*) ((uint32_t) buffer->mem + targetIndex * buffer->dataSize);
+}
+
 void RingBuffer_flush(RingBuffer_t * buffer){
     buffer->readIndex = buffer->writeIndex = 0;
 }
