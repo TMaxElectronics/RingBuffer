@@ -64,8 +64,8 @@ static int32_t RingBuffer_writeToBuffer(RingBuffer_t * buffer, void* src, int32_
     
     while(currItem < length){
         //Calculate the pointer from the current index. This is potentially a bit shady? Idk (TODO evaluate?). Because our datasize is dynamic we need to do an integer addition to the pointer
-        void* dstPtr = (void*) ((uint32_t) buffer->mem + currIndex * buffer->dataSize);
-        void* srcPtr = (void*) ((uint32_t) src + currItem * buffer->dataSize);
+        void* dstPtr = (void*) ((char*) buffer->mem + currIndex * buffer->dataSize);
+        void* srcPtr = (void*) ((char*) src + currItem * buffer->dataSize);
             
         //copy the data
         memcpy(dstPtr, srcPtr, buffer->dataSize);
@@ -95,7 +95,7 @@ int32_t RingBuffer_writeSingleWord(RingBuffer_t * buffer, void* src){
     uint32_t currIndex = buffer->writeIndex;
     
     //Calculate the pointer from the current index. This is potentially a bit shady? Idk (TODO evaluate?). Because our datasize is dynamic we need to do an integer addition to the pointer
-    void* dstPtr = (void*) ((uint32_t) buffer->mem + currIndex * buffer->dataSize);
+    void* dstPtr = (void*) ((char*) buffer->mem + currIndex * buffer->dataSize);
 
     //copy the data
     memcpy(dstPtr, src, buffer->dataSize);
@@ -161,8 +161,8 @@ int32_t RingBuffer_read(RingBuffer_t * buffer, void* dst, uint32_t length){
     
     while(currItem < length){
         //Calculate the pointer from the current index. This is potentially a bit shady? Idk (TODO evaluate?). Because our datasize is dynamic we need to do an integer addition to the pointer
-        void* dstPtr = (void*) ((uint32_t) dst + currItem * buffer->dataSize);
-        void* srcPtr = (void*) ((uint32_t) buffer->mem + currIndex * buffer->dataSize);
+        void* dstPtr = (void*) ((char*) dst + currItem * buffer->dataSize);
+        void* srcPtr = (void*) ((char*) buffer->mem + currIndex * buffer->dataSize);
 
         //copy the data
         memcpy(dstPtr, srcPtr, buffer->dataSize);
@@ -201,7 +201,7 @@ int32_t RingBuffer_readBufferPointer(RingBuffer_t * buffer, void** dst, uint32_t
     vTaskEnterCritical();
     
     //get pointer to current data segment
-    *dst = (void*) ((uint32_t) buffer->mem + buffer->readIndex * buffer->dataSize);
+    *dst = (void*) ((char*) buffer->mem + buffer->readIndex * buffer->dataSize);
     
     //and then update the read index
     //WARNING this is the step after which the write routing sees the memory pointed to by the buffer returned to be free.
@@ -238,8 +238,8 @@ int32_t RingBuffer_peek(RingBuffer_t * buffer, void* dst, uint32_t index, uint32
     
     while(currItem < length){
         //Calculate the pointer from the current index. This is potentially a bit shady? Idk (TODO evaluate?). Because our datasize is dynamic we need to do an integer addition to the pointer
-        void* dstPtr = (void*) ((uint32_t) dst + currItem * buffer->dataSize);
-        void* srcPtr = (void*) ((uint32_t) buffer->mem + currIndex * buffer->dataSize);
+        void* dstPtr = (void*) ((char*) dst + currItem * buffer->dataSize);
+        void* srcPtr = (void*) ((char*) buffer->mem + currIndex * buffer->dataSize);
 
         //copy the data
         memcpy(dstPtr, srcPtr, buffer->dataSize);
@@ -273,8 +273,8 @@ int32_t RingBuffer_readFromISR(RingBuffer_t * buffer, void* dst, int32_t length)
     
     while(currItem < length){
         //Calculate the pointer from the current index. This is potentially a bit shady? Idk (TODO evaluate?). Because our datasize is dynamic we need to do an integer addition to the pointer
-        void* dstPtr = (void*) ((uint32_t) dst + currItem * buffer->dataSize);
-        void* srcPtr = (void*) ((uint32_t) buffer->mem + currIndex * buffer->dataSize);
+        void* dstPtr = (void*) ((char*) dst + currItem * buffer->dataSize);
+        void* srcPtr = (void*) ((char*) buffer->mem + currIndex * buffer->dataSize);
 
         //copy the data
         memcpy(dstPtr, srcPtr, buffer->dataSize);
@@ -313,7 +313,7 @@ void* RingBuffer_indexedPeek(RingBuffer_t * buffer, uint32_t index){
     }
     
     //data should be valid => return pointer to it
-    return (void*) ((uint32_t) buffer->mem + targetIndex * buffer->dataSize);
+    return (void*) ((char*) buffer->mem + targetIndex * buffer->dataSize);
 }
 
 void RingBuffer_flush(RingBuffer_t * buffer){
